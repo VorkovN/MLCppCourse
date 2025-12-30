@@ -1,0 +1,12 @@
+[settings]
+arch = armv8
+build_type = Release
+compiler = apple-clang
+compiler.version = 17.0
+compiler.cppstd = 20
+compiler.libcxx = libc++
+os = Macos
+os.version = 15.5
+
+[conf]
+tools.apple:sdk_path=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
