@@ -5,9 +5,9 @@ set(CMAKE_CXX_STANDARD 20)
 
 ### Conan START
 if(APPLE)
-    set(CONAN_PROFILE "macos_release")
+    set(CONAN_PROFILE "macos_debug")
 else()
-    set(CONAN_PROFILE "linux_release")
+    set(CONAN_PROFILE "linux_debug")
 endif()
 
 find_program(CONAN_EXECUTABLE NAMES conan REQUIRED)
@@ -29,7 +29,7 @@ endif()
 include(${CMAKE_BINARY_DIR}/conan_toolchain.cmake)
 ### Conan END
 
-find_package(OpenCV REQUIRED COMPONENTS core calib3d)
+find_package(OpenCV REQUIRED COMPONENTS core imgproc highgui)
 message(STATUS "OpenCV path: ${OpenCV_INCLUDE_DIRS}")
 
 add_executable(${PROJECT_NAME} main.cpp)
