@@ -1,0 +1,12 @@
+{
+    "version": "0.5",
+    "requires": [
+        "zlib/1.3.1#b8bc2603263cf7eccbd6e17e66b0ed76",
+        "libjpeg/9e#ebca87d1efc798db99cc9bbe2297679a",
+        "opencv/4.11.0#71aeafa9c85259d048279092e4d06666"
+    ],
+    "build_requires": [
+    ],
+    "python_requires": [],
+    "config_requires": []
+}
