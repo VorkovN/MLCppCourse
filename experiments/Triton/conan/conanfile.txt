@@ -1,11 +1,13 @@
 [requires]
 opencv/4.11.0
+triton-client/2.57.1
 
 [generators]
 CMakeDeps
 CMakeToolchain
 
 [options]
+triton-client/2.51.0:device=cpu
 opencv/4.11.0:ml=False
 opencv/4.11.0:dnn=False
 opencv/4.11.0:gapi=False

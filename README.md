@@ -9,7 +9,7 @@
   * Через Pybind
 * Yolo
   * Погуглить как
-  * Через Triton(tensorRT?)
+  * Через Triton
     * Yolo
     * Классификатор картинок
 * OCR
