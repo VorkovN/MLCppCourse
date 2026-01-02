@@ -10,3 +10,6 @@ os.version = 15.5
 
 [conf]
 tools.apple:sdk_path=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
+
+[buildenv]
+CMAKE_POLICY_VERSION_MINIMUM=3.5
