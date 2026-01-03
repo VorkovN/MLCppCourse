@@ -11,67 +11,52 @@ namespace py = pybind11;
 class FaceLandmarkerWrapper {
 public:
     FaceLandmarkerWrapper(const std::string& model_path) : guard_{} {
+        // Поднимаем embedded Python и при необходимости добавляем путь до venv site-packages.
+        // Это нужно, чтобы `import mediapipe` находил пакет в окружении, которое вы подготовили.
         py::module_ sys = py::module_::import("sys");
-
-#ifdef MEDIAPIPEPYBIND_VENV_SITE_PACKAGES
         sys.attr("path").attr("insert")(0, MEDIAPIPEPYBIND_VENV_SITE_PACKAGES);
-#endif
-        
-        try {
-            py::module_ mediapipe = py::module_::import("mediapipe");
-            py::module_ python_tasks = py::module_::import("mediapipe.tasks.python");
-            py::module_ vision = py::module_::import("mediapipe.tasks.python.vision");
-            py::module_ base_options_module = py::module_::import("mediapipe.tasks.python.core.base_options");
-        
-            py::object FaceLandmarker = vision.attr("FaceLandmarker");
-            py::object FaceLandmarkerOptions = vision.attr("FaceLandmarkerOptions");
 
-            py::object BaseOptions = base_options_module.attr("BaseOptions");
+        // Импортируем модули Mediapipe Task API из Python.
+        py::module_ mediapipe = py::module_::import("mediapipe");
+        py::module_ python_tasks = py::module_::import("mediapipe.tasks.python");
+        py::module_ vision = py::module_::import("mediapipe.tasks.python.vision");
+        py::module_ base_options_module = py::module_::import("mediapipe.tasks.python.core.base_options");
 
-            py::object RunningMode;
-            if (py::hasattr(vision, "RunningMode")) {
-                RunningMode = vision.attr("RunningMode");
-            } else if (py::hasattr(vision, "VisionTaskRunningMode")) {
-                RunningMode = vision.attr("VisionTaskRunningMode");
-            } else {
-                RunningMode = vision.attr("RunningMode");
-            }
-        
-            py::kwargs base_options_kwargs;
-            base_options_kwargs["model_asset_path"] = model_path;
-            py::object base_options = BaseOptions(**base_options_kwargs);
-        
-            py::kwargs options_kwargs;
-            options_kwargs["base_options"] = base_options;
-            options_kwargs["running_mode"] = RunningMode.attr("VIDEO");
-            options_kwargs["num_faces"] = 1;
-            py::object options = FaceLandmarkerOptions(**options_kwargs);
-        
-            landmarker_ = FaceLandmarker.attr("create_from_options")(options);
-        } catch (const py::error_already_set& e) {
-            std::cerr << "Ошибка импорта mediapipe: " << e.what() << std::endl;
-            py::object sys_path = sys.attr("path");
-            std::cerr << "sys.path:" << std::endl;
-            for (size_t i = 0; i < py::len(sys_path); ++i) {
-                std::cerr << "  " << sys_path.attr("__getitem__")(py::cast(i)).cast<std::string>() << std::endl;
-            }
-            throw;
-        }
+        py::object FaceLandmarker = vision.attr("FaceLandmarker");
+        py::object FaceLandmarkerOptions = vision.attr("FaceLandmarkerOptions");
+
+        py::object BaseOptions = base_options_module.attr("BaseOptions");
+        py::object RunningMode = vision.attr("RunningMode");
+
+        // base_options = BaseOptions(model_asset_path=model_path)
+        py::kwargs base_options_kwargs;
+        base_options_kwargs["model_asset_path"] = model_path;
+        py::object base_options = BaseOptions(**base_options_kwargs);
+
+        // options = FaceLandmarkerOptions(base_options=..., running_mode=VIDEO, num_faces=1)
+        py::kwargs options_kwargs;
+        options_kwargs["base_options"] = base_options;
+        options_kwargs["running_mode"] = RunningMode.attr("VIDEO");
+        options_kwargs["num_faces"] = 1;
+        py::object options = FaceLandmarkerOptions(**options_kwargs);
+
+        // landmarker_ — Python-объект детектора, который будем вызывать на каждом кадре.
+        landmarker_ = FaceLandmarker.attr("create_from_options")(options);
     }
     
     std::vector<std::pair<int, int>> detect(const cv::Mat& frame) {
         std::vector<std::pair<int, int>> landmarks;
         
-        cv::Mat rgb_frame;
-        cv::cvtColor(frame, rgb_frame, cv::COLOR_BGR2RGB);
+        // Гарантируем непрерывный буфер: numpy ожидает линейные данные.
+        if (!frame.isContinuous()) {
+            return {};
+        }
         
-        cv::Mat rgb_frame_contiguous;
-        rgb_frame.copyTo(rgb_frame_contiguous);
+        // Создаём numpy массив HWC uint8 и копируем туда пиксели.
+        py::array_t<uint8_t> img_array({frame.rows, frame.cols, 3});
+        std::memcpy(img_array.mutable_data(), frame.data, frame.rows * frame.cols * 3);
         
-        size_t size = rgb_frame_contiguous.rows * rgb_frame_contiguous.cols * 3;
-        py::array_t<uint8_t> img_array({rgb_frame_contiguous.rows, rgb_frame_contiguous.cols, 3});
-        std::memcpy(img_array.mutable_data(), rgb_frame_contiguous.data, size);
-        
+        // Строим mediapipe.Image(image_format=SRGB, data=np_array)
         py::module_ mediapipe = py::module_::import("mediapipe");
         py::object Image = mediapipe.attr("Image");
         py::object ImageFormat = mediapipe.attr("ImageFormat");
@@ -80,6 +65,7 @@ public:
         image_kwargs["data"] = img_array;
         py::object image = Image(**image_kwargs);
         
+        // VIDEO режим требует timestamp (в миллисекундах).
         py::object result = landmarker_.attr("detect_for_video")(image, timestamp_ms_);
         
         if (!result.is_none()) {
@@ -88,8 +74,10 @@ public:
                 py::object first_face = face_landmarks_list.attr("__getitem__")(0);
                 for (size_t i = 0; i < py::len(first_face); ++i) {
                     py::object landmark = first_face.attr("__getitem__")(py::cast(i));
-                    auto x = landmark.attr("x").cast<double>();
-                    auto y = landmark.attr("y").cast<double>();
+                    const auto x = landmark.attr("x").cast<double>();
+                    const auto y = landmark.attr("y").cast<double>();
+
+                    // x,y в [0..1] -> переводим в пиксели.
                     landmarks.emplace_back(
                         static_cast<int>(x * frame.cols),
                         static_cast<int>(y * frame.rows)
@@ -98,11 +86,13 @@ public:
             }
         }
         
+        // Сдвигаем таймстемп на "примерно 30 FPS".
         timestamp_ms_ += 33;
         return landmarks;
     }
     
 private:
+    // guard_ должен жить столько же, сколько мы используем Python API.
     py::scoped_interpreter guard_;
     py::object landmarker_;
     int64_t timestamp_ms_ = 0;
@@ -124,42 +114,38 @@ int main() {
         return -1;
     }
 
-    try {
-        FaceLandmarkerWrapper landmarker(model_path);
+    // Создаём Python-детектор один раз, дальше используем его на каждом кадре.
+    FaceLandmarkerWrapper landmarker(model_path);
 
+    while (true) {
         cv::Mat frame;
-        const int delay_ms = 33;
 
-        while (true) {
-            bool success = camera.read(frame);
-            if (!success || frame.empty()) {
-                break;
-            }
-
-            auto landmarks = landmarker.detect(frame);
-
-            for (const auto& [x, y] : landmarks) {
-                cv::circle(frame, cv::Point(x, y), 2, cv::Scalar(0, 255, 0), -1);
-            }
-
-            try {
-                cv::imshow("Face Landmarks", frame);
-            } catch (const cv::Exception& e) {
-                std::cerr << e.what() << std::endl;
-                break;
-            }
-
-            int key = cv::waitKey(delay_ms);
-            if (key == 27 || key == 'q') {
-                break;
-            }
+        bool success = camera.read(frame);
+        if (!success || frame.empty()) {
+            break;
         }
-    } catch (const py::error_already_set& e) {
-        std::cerr << "Ошибка Python: " << e.what() << std::endl;
-        return -1;
-    } catch (const std::exception& e) {
-        std::cerr << "Ошибка: " << e.what() << std::endl;
-        return -1;
+
+        // OpenCV-кадр приходит в BGR, mediapipe ожидает RGB/SRGB.
+        cv::Mat rgb_frame;
+        cv::cvtColor(frame, rgb_frame, cv::COLOR_BGR2RGB);
+
+        // Детектируем точки лица и рисуем их.
+        auto landmarks = landmarker.detect(rgb_frame);
+
+        for (const auto& [x, y] : landmarks) {
+            cv::circle(frame, cv::Point(x, y), 2, cv::Scalar(0, 255, 0), -1);
+        }
+
+        // Показываем кадр в окне.
+        cv::imshow("Face Landmarks", frame);
+
+        // waitKey:
+        // - даёт OpenCV обработать события окна,
+        // - возвращает код нажатой клавиши (если была).
+        // Здесь выходим по ESC (27).
+        if (cv::waitKey(1) == 27) {
+            break;
+        }
     }
 
     camera.release();

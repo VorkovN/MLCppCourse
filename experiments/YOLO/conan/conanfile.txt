@@ -30,5 +30,5 @@ opencv/4.11.0:with_imgcodec_hdr=False
 opencv/4.11.0:with_imgcodec_pfm=False
 opencv/4.11.0:with_imgcodec_pxm=False
 opencv/4.11.0:with_imgcodec_sunraster=False
-opencv/4.11.0:with_jpeg2000=True
-opencv/4.11.0:with_png=True
+opencv/4.11.0:with_jpeg2000=False
+opencv/4.11.0:with_png=False
