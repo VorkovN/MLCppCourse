@@ -7,6 +7,15 @@ compiler.cppstd = 20
 compiler.libcxx = libstdc++11
 os = Linux
 
+[options]
+# Самый стабильный бэк для камеры на линукс
+opencv/*:with_v4l=True
+# HighGUI:  GTK стабильнее
+opencv/*:with_gtk=True
+opencv/*:with_wayland=False
+
 [conf]
+# Выключаем obsensor backend (Orbbec) в OpenCV на уровне CMake (это не conan-опция рецепта).
+tools.cmake.cmaketoolchain:extra_variables={"WITH_OBSENSOR":"OFF"}
 tools.system.package_manager:mode=install
 tools.build:compiler_executables={"c": "/usr/bin/gcc-13", "cpp": "/usr/bin/g++-13"}

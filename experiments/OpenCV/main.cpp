@@ -19,10 +19,9 @@ int main() {
     camera.set(cv::CAP_PROP_FRAME_HEIGHT, 720);
     camera.set(cv::CAP_PROP_FPS, 30);
 
-    // frame — исходный кадр в цветовом пространстве BGR,
-    // hsv — тот же кадр в HSV (удобно выделять цвет по диапазону hue),
-    // mask — бинарная маска (0/255), где 255 означает "пиксель подходит под условие".
-    cv::Mat frame, hsv, mask;
+    // frame — исходный кадр в BGR,
+    // gray — тот же кадр в градациях серого (для поиска окружностей без привязки к цвету).
+    cv::Mat frame, gray;
 
 
     while (true) {
@@ -34,24 +33,14 @@ int main() {
             break;
         }
 
-        // OpenCV по умолчанию отдаёт кадры в BGR. Для выделения зелёного цвета удобнее HSV.
-        cv::cvtColor(frame, hsv, cv::COLOR_BGR2HSV);
-
-        // Диапазон зелёного в HSV:
-        // Hue примерно 40..80 (зависит от освещения/камеры),
-        // Saturation/Value отсекают слишком серые/тёмные пиксели.
-        cv::Scalar lowerGreen(40, 50, 50);
-        cv::Scalar upperGreen(80, 255, 255);
-
-        // Строим бинарную маску: пиксели внутри диапазона -> 255, остальные -> 0.
-        cv::inRange(hsv, lowerGreen, upperGreen, mask);
+        cv::cvtColor(frame, gray, cv::COLOR_BGR2GRAY);
+        cv::GaussianBlur(gray, gray, cv::Size(9, 9), 2.0, 2.0);
 
         // Вектор найденных окружностей. cv::Vec3f хранит (center_x, center_y, radius).
         std::vector<cv::Vec3f> circles;
 
         // HoughCircles ищет окружности по изображению.
-        // Мы передаём mask, т.е. ищем окружность среди "зелёных" пикселей.
-        cv::HoughCircles(mask, circles, cv::HOUGH_GRADIENT_ALT, 20.0, 10, 10, 0.70, 50, 2000);
+        cv::HoughCircles(gray, circles, cv::HOUGH_GRADIENT_ALT, 20.0, 10, 10, 0.9, 50, 2000);
 
 
         if (!circles.empty()) {
@@ -75,7 +64,7 @@ int main() {
         }
 
         // Показываем кадр в окне.
-        cv::imshow("Зеленый круг", frame);
+        cv::imshow("Круг", frame);
 
         // waitKey:
         // - даёт OpenCV обработать события окна,

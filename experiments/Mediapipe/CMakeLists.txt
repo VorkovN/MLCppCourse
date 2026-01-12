@@ -19,6 +19,8 @@ execute_process(
         --profile:build ${CMAKE_SOURCE_DIR}/conan/profile_${CONAN_PROFILE}
         --profile:host ${CMAKE_SOURCE_DIR}/conan/profile_${CONAN_PROFILE}
         --lockfile ${CMAKE_SOURCE_DIR}/conan/conan.lock
+        --lockfile-partial
+        --lockfile-out ${CMAKE_SOURCE_DIR}/conan/conan.lock
         RESULT_VARIABLE CONAN_RESULT
 )
 
@@ -30,7 +32,7 @@ include(${CMAKE_BINARY_DIR}/conan_toolchain.cmake)
 ### Conan END
 
 find_package(mediapipe CONFIG REQUIRED)
-find_package(OpenCV REQUIRED COMPONENTS core imgproc highgui)
+find_package(OpenCV REQUIRED COMPONENTS core imgproc highgui videoio)
 
 add_executable(${PROJECT_NAME} main.cpp)
 

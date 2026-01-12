@@ -335,3 +335,18 @@ OCR:
       отвлечёнными от задачи делами.
     * На вход сервис получает набор скринов, на выход сервис должен предоставить ответ в виде списка пар: имя скрина,
       работает/филонит.
+
+
+
+
+
+
+
+
+
+
+
+conan create . --build=missing  --profile:build ../profile_linux_debug  --profile:host ../profile_linux_debug
+cmake -DCMAKE_BUILD_TYPE=Debug -G "Unix Makefiles" -B cmake-build-debug
+cmake --build cmake-build-debug --target Mediapipe -j 2
+./cmake-build-debug/Mediapipe

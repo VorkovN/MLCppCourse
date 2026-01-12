@@ -19,6 +19,8 @@ execute_process(
         --profile:build ${CMAKE_SOURCE_DIR}/conan/profile_${CONAN_PROFILE}
         --profile:host ${CMAKE_SOURCE_DIR}/conan/profile_${CONAN_PROFILE}
         --lockfile ${CMAKE_SOURCE_DIR}/conan/conan.lock
+        --lockfile-partial
+        --lockfile-out ${CMAKE_SOURCE_DIR}/conan/conan.lock
         RESULT_VARIABLE CONAN_RESULT
 )
 
