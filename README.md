@@ -36,6 +36,8 @@
 <a id="opencv"></a>
 ## OpenCV
 
+![Пример детекции окружностей с помощью OpenCV](https://raw.githubusercontent.com/VorkovN/MLCppCourse/main/images/OpenCV.png)
+
 #### Темы урока
 
 - [CMake](#opencv-cmake) — генератор сборки, targets, зависимости, типы сборки.
@@ -207,6 +209,8 @@ cv::circle(frame, center, 3, cv::Scalar(0, 0, 255), -1);
 
 <a id="mediapipe"></a>
 ## MediaPipe
+
+![Визуализация лендмарков лица MediaPipe](https://raw.githubusercontent.com/VorkovN/MLCppCourse/main/images/MediaPipe.png)
 
 <a id="mediapipe-topics"></a>
 #### Темы урока
@@ -397,6 +401,8 @@ for (size_t i = 0; i < py::len(first_face); ++i) {
 
 <a id="yolo"></a>
 ## YOLO
+
+![Пример детекции объектов YOLO](https://raw.githubusercontent.com/VorkovN/MLCppCourse/main/images/YOLO.png)
 
 <a id="yolo-topics"></a>
 #### Темы урока
@@ -631,6 +637,8 @@ const float* out = reinterpret_cast<const float*>(output_bytes);
 ---
 <a id="ocr"></a>
 ## OCR
+
+![Пример работы OCR с Tesseract](https://raw.githubusercontent.com/VorkovN/MLCppCourse/main/images/OCR.png)
 
 <a id="ocr-topics"></a>
 #### Темы урока
