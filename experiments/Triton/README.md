@@ -1,2 +1,0 @@
-Запуск тритона:
-```docker run --rm --name triton  --platform=linux/arm64  -p 8000:8000 -v ./experiments/Triton/models:/models nvcr.io/nvidia/tritonserver:24.10-py3 tritonserver --model-repository=/models```
